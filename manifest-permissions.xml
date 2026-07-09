@@ -1,0 +1,30 @@
+<!--
+  These lines go into android/app/src/main/AndroidManifest.xml, which only
+  exists after you run `npx cap add android` (see SETUP_README.md step 3).
+  That file is generated fresh by Capacitor — don't try to create it by hand.
+
+  Add these <uses-permission> tags as direct children of <manifest>,
+  ABOVE the <application> tag. The plugin itself (@capacitor-community/
+  background-geolocation) ships its own AndroidManifest.xml declaring the
+  foreground service it needs — Gradle's manifest merger combines that into
+  your app's final manifest automatically during the build, so you should
+  NOT need to hand-write a <service> tag. Only add one yourself if the build
+  specifically errors about a missing service/foregroundServiceType.
+-->
+
+<!-- Foreground + background location. Android 10+ treats
+     ACCESS_BACKGROUND_LOCATION as a SEPARATE permission from
+     ACCESS_FINE_LOCATION -- the OS shows it as its own dialog, and on
+     Android 11+ it can usually only be granted via Settings > Location >
+     "Allow all the time" rather than the normal in-app popup. -->
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+<uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
+<!-- Required for the persistent "WorkPay is tracking your location" notification
+     Android mandates for any app running a foreground service. -->
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+
+<!-- Keeps the device's location provider awake while the foreground service runs. -->
+<uses-permission android:name="android.permission.WAKE_LOCK" />
