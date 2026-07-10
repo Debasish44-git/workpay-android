@@ -34,6 +34,35 @@ jobs:
       - name: Insert location permissions into AndroidManifest
         run: sed -i '/<manifest /r manifest-permissions.xml' android/app/src/main/AndroidManifest.xml
 
+      - name: Keep tracking service alive when app is swiped from recents
+        run: |
+          python3 - <<'PY'
+          path = "android/app/src/main/AndroidManifest.xml"
+          with open(path) as f:
+              content = f.read()
+
+          # tools:node="merge" below needs the tools namespace declared on <manifest>
+          if 'xmlns:tools=' not in content:
+              content = content.replace(
+                  '<manifest xmlns:android="http://schemas.android.com/apk/res/android"',
+                  '<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools"'
+              )
+
+          # Overrides just the stopWithTask attribute on the plugin's own
+          # service (merged in from its AAR) so swiping WorkPay away from
+          # recents no longer kills the location-tracking foreground service.
+          service_override = (
+              '    <service\n'
+              '        android:name="com.equimaps.capacitor_background_geolocation.BackgroundGeolocationService"\n'
+              '        android:stopWithTask="false"\n'
+              '        tools:node="merge" />\n'
+          )
+          content = content.replace('</application>', service_override + '</application>')
+
+          with open(path, 'w') as f:
+              f.write(content)
+          PY
+
       - name: Sync Capacitor
         run: npx cap sync android
 
