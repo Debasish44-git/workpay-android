@@ -1,20 +1,13 @@
 <!--
-  These lines go into android/app/src/main/AndroidManifest.xml, which only
-  exists after you run `npx cap add android` (see SETUP_README.md step 3).
-  That file is generated fresh by Capacitor, so don't try to create it by hand.
-
-  Add the uses-permission / uses-feature tags as direct children of manifest,
-  ABOVE the application tag.
-
-  Add the <service> tag below as a direct child of <application>,
-  anywhere inside it (order relative to other children doesn't matter).
-  This is NOT auto-merged from the plugin's own manifest — the official
-  capacitor-community/background-geolocation README requires you to
-  declare it yourself. Skipping it doesn't cause a build error; it fails
-  silently at RUNTIME instead, throwing a SecurityException the moment
-  the app tries to start the foreground service ("service not declared
-  in manifest") — which looks exactly like "background tracking just
-  doesn't work," so don't skip this.
+  These lines go into android/app/src/main/AndroidManifest.xml. This file is
+  inserted automatically by build.yml (sed -i '/<manifest /r manifest-permissions.xml')
+  right after the <manifest ...> opening tag — so ONLY put tags here that are
+  valid direct children of <manifest> itself: <uses-permission> and
+  <uses-feature>. Do NOT put a <service> tag here — it needs to be inside
+  <application>, and this file lands outside it. The build.yml workflow
+  already handles the background-geolocation <service> tag itself (see the
+  "Keep tracking service alive..." step, which merges tools:node="merge"
+  onto the service the plugin's own AAR manifest declares).
 -->
 
 <!-- Foreground and background location. Android 10+ treats
@@ -42,16 +35,3 @@
 <!-- required="false" so the app still installs on devices/tablets with no
      camera — punch-in falls back to the gallery file picker in that case. -->
 <uses-feature android:name="android.hardware.camera" android:required="false" />
-
-<!--
-  ═══════════════════════════════════════════════════════════════════
-  Add this <service> tag as a direct child of <application>.
-  Package/class name must match exactly — it's the plugin's Android
-  implementation class, not something you name yourself.
-  ═══════════════════════════════════════════════════════════════════
--->
-<service
-    android:name="com.equimaps.capacitor_background_geolocation.BackgroundGeolocationService"
-    android:enabled="true"
-    android:exported="true"
-    android:foregroundServiceType="location" />
