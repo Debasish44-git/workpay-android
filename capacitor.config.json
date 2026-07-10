@@ -1,12 +1,15 @@
 {
-  "appId": "com.dworkpay.app",
-  "appName": "WorkPay",
-  "webDir": "www",
-  "bundledWebRuntime": false,
-  "android": {
-    "allowMixedContent": true
-  },
-  "plugins": {
-    "BackgroundGeolocation": {}
-  }
+	"appId": "com.dworkpay.app",
+	"appName": "WorkPay",
+	"webDir": "www",
+	"bundledWebRuntime": false,
+	"android": {
+		"allowMixedContent": true
+	},
+	"plugins": {
+		"BackgroundGeolocation": {},
+		"CapacitorHttp": {
+			"enabled": true
+		}
+	}
 }
