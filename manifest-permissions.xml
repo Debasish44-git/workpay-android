@@ -3,28 +3,55 @@
   exists after you run `npx cap add android` (see SETUP_README.md step 3).
   That file is generated fresh by Capacitor, so don't try to create it by hand.
 
-  Add these uses-permission tags as direct children of manifest,
-  ABOVE the application tag. The plugin itself (capacitor-community
-  background-geolocation) ships its own AndroidManifest.xml declaring the
-  foreground service it needs, so Gradle's manifest merger combines that into
-  your app's final manifest automatically during the build. You should
-  NOT need to hand-write a service tag. Only add one yourself if the build
-  specifically errors about a missing service or foregroundServiceType.
+  Add the uses-permission / uses-feature tags as direct children of manifest,
+  ABOVE the application tag.
+
+  Add the <service> tag below as a direct child of <application>,
+  anywhere inside it (order relative to other children doesn't matter).
+  This is NOT auto-merged from the plugin's own manifest — the official
+  capacitor-community/background-geolocation README requires you to
+  declare it yourself. Skipping it doesn't cause a build error; it fails
+  silently at RUNTIME instead, throwing a SecurityException the moment
+  the app tries to start the foreground service ("service not declared
+  in manifest") — which looks exactly like "background tracking just
+  doesn't work," so don't skip this.
 -->
 
 <!-- Foreground and background location. Android 10+ treats
      ACCESS_BACKGROUND_LOCATION as a SEPARATE permission from
      ACCESS_FINE_LOCATION. The OS shows it as its own dialog, and on
      Android 11+ it can usually only be granted via Settings, Location,
-     Allow all the time, rather than the normal in app popup. -->
+     Allow all the time, rather than the normal in-app popup. -->
 <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 
-<!-- Required for the persistent WorkPay is tracking your location notification
+<!-- Required for the persistent "WorkPay is tracking your location" notification
      Android mandates for any app running a foreground service. -->
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
 
 <!-- Keeps the device's location provider awake while the foreground service runs. -->
 <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+<!-- Live in-app camera preview for worker punch-in/punch-out photos
+     (WebView getUserMedia). Capacitor's WebView auto-handles the runtime
+     permission prompt when this is declared — no extra plugin needed. -->
+<uses-permission android:name="android.permission.CAMERA" />
+
+<!-- required="false" so the app still installs on devices/tablets with no
+     camera — punch-in falls back to the gallery file picker in that case. -->
+<uses-feature android:name="android.hardware.camera" android:required="false" />
+
+<!--
+  ═══════════════════════════════════════════════════════════════════
+  Add this <service> tag as a direct child of <application>.
+  Package/class name must match exactly — it's the plugin's Android
+  implementation class, not something you name yourself.
+  ═══════════════════════════════════════════════════════════════════
+-->
+<service
+    android:name="com.equimaps.capacitor_background_geolocation.BackgroundGeolocationService"
+    android:enabled="true"
+    android:exported="true"
+    android:foregroundServiceType="location" />
