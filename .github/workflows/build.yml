@@ -25,6 +25,11 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Apply native background-location patch
+        run: |
+          cp native-patches/BackgroundGeolocationService.java node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocationService.java
+          cp native-patches/BackgroundGeolocation.java node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocation.java
+
       - name: Prepare web assets
         run: mkdir -p www && cp index.html www/
 
