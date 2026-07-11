@@ -114,6 +114,60 @@ public class BackgroundGeolocationService extends Service {
         return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
+    // ── WORKPAY DEBUG INSTRUMENTATION ────────────────────────────────────
+    // A dead-simple INSERT into a dedicated table, with zero dependency on
+    // GET/merge logic or activeSessions key matching. If rows show up here
+    // during a background walk, we know for certain the native callback is
+    // firing and networking works — meaning any remaining problem is in the
+    // activeSessions merge logic below, not the callback itself. If NO rows
+    // ever appear, the callback isn't firing at all in the background on
+    // this phone/OS, which is a deeper OS-level issue.
+    //
+    // Requires one small Supabase table, created once via the Supabase
+    // dashboard SQL editor:
+    //   create table debug_heartbeats (
+    //     id bigint generated always as identity primary key,
+    //     worker_id text, lat double precision, lon double precision,
+    //     ts bigint
+    //   );
+    private static void sendDebugHeartbeat(final Watcher w, final Location location) {
+        if (w.supabaseUrl == null || w.supabaseKey == null || w.workerId == null) return;
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                HttpURLConnection conn = null;
+                try {
+                    JSONObject row = new JSONObject();
+                    row.put("worker_id", w.workerId);
+                    row.put("lat", location.getLatitude());
+                    row.put("lon", location.getLongitude());
+                    row.put("ts", System.currentTimeMillis());
+
+                    URL url = new URL(w.supabaseUrl + "/rest/v1/debug_heartbeats");
+                    conn = (HttpURLConnection) url.openConnection();
+                    conn.setRequestMethod("POST");
+                    conn.setRequestProperty("apikey", w.supabaseKey);
+                    conn.setRequestProperty("Authorization", "Bearer " + w.supabaseKey);
+                    conn.setRequestProperty("Content-Type", "application/json");
+                    conn.setRequestProperty("Prefer", "return=minimal");
+                    conn.setConnectTimeout(15000);
+                    conn.setReadTimeout(15000);
+                    conn.setDoOutput(true);
+                    OutputStream os = conn.getOutputStream();
+                    os.write(row.toString().getBytes("UTF-8"));
+                    os.flush();
+                    os.close();
+                    Logger.debug("[BackgroundGeolocation] heartbeat -> HTTP " + conn.getResponseCode());
+                } catch (Exception e) {
+                    Logger.error("[BackgroundGeolocation] heartbeat failed", e);
+                } finally {
+                    if (conn != null) conn.disconnect();
+                }
+            }
+        }).start();
+    }
+    // ──────────────────────────────────────────────────────────────────
+
     // Mirrors _nativePushLocationForWorker() in index.html: GET the current
     // workpay_data row, merge just this worker's activeSessions fields in,
     // POST it back as an upsert. Runs on a background thread — this method
@@ -279,6 +333,7 @@ public class BackgroundGeolocationService extends Service {
                     // This is the actual fix: push straight to Supabase from
                     // here, regardless of whether the broadcast above ever
                     // reaches a live JS listener.
+                    sendDebugHeartbeat(watcher, location);
                     pushLocationDirectly(watcher, location);
                     // ─────────────────────────────────────────────────────
                 }
@@ -358,19 +413,4 @@ public class BackgroundGeolocationService extends Service {
 
         void onPermissionsGranted() {
             // If permissions were granted while the app was in the background, for example in
-            // the Settings app, the watchers need restarting.
-            for (Watcher watcher : watchers) {
-                watcher.client.removeLocationUpdates(watcher.locationCallback);
-                watcher.client.requestLocationUpdates(
-                    watcher.locationRequest,
-                    watcher.locationCallback,
-                    null
-                );
-            }
-        }
-
-        void stopService() {
-            BackgroundGeolocationService.this.stopSelf();
-        }
-    }
-}
+            // the Settings app, the watchers ne
