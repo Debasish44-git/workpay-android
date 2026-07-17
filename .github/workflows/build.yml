@@ -36,6 +36,38 @@ jobs:
       - name: Add Android platform
         run: npx cap add android
 
+      - name: Add Firebase (FCM push notifications) config
+        run: |
+          cp google-services.json android/app/google-services.json
+          python3 - <<'PY'
+          # Ensure the root build.gradle has the google-services classpath
+          # (goes in the buildscript { dependencies { ... } } block, which is
+          # the first "dependencies {" in Capacitor's generated root file).
+          root_path = "android/build.gradle"
+          with open(root_path) as f:
+              root = f.read()
+          if 'com.google.gms:google-services' not in root:
+              root = root.replace(
+                  "dependencies {",
+                  "dependencies {\n        classpath 'com.google.gms:google-services:4.4.2'",
+                  1
+              )
+              with open(root_path, 'w') as f:
+                  f.write(root)
+
+          # Ensure the app module actually applies the plugin. Capacitor's
+          # template sometimes already conditionally applies it if
+          # google-services.json is present — only add it if it's missing,
+          # so we never apply it twice.
+          app_path = "android/app/build.gradle"
+          with open(app_path) as f:
+              app = f.read()
+          if "com.google.gms.google-services" not in app:
+              app += "\napply plugin: 'com.google.gms.google-services'\n"
+              with open(app_path, 'w') as f:
+                  f.write(app)
+          PY
+
       - name: Insert location permissions into AndroidManifest
         run: sed -i '/<manifest /r manifest-permissions.xml' android/app/src/main/AndroidManifest.xml
 
