@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "250495208862",
+    "project_id": "my-saas-business",
+    "storage_bucket": "my-saas-business.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:250495208862:android:edbd4ea4cf5094b69b5a8f",
+        "android_client_info": {
+          "package_name": "com.dworkpay.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "250495208862-uf06nutm97ejhncpvlh624uvndodklfl.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCnAndGfddRiyf_YqztIxD9fCWe4uNjthM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "250495208862-uf06nutm97ejhncpvlh624uvndodklfl.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
