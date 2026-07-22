@@ -55,7 +55,7 @@ jobs:
               selfDefending: false,
               disableConsoleOutput: true
             }).getObfuscatedCode();
-            return match.replace(code, result);
+            return match.replace(code, () => result);
           });
 
           fs.writeFileSync('index.obfuscated.html', html);
