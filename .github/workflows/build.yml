@@ -30,8 +30,39 @@ jobs:
           cp native-patches/BackgroundGeolocationService.java node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocationService.java
           cp native-patches/BackgroundGeolocation.java node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocation.java
 
+      - name: Install obfuscator
+        run: npm install --no-save javascript-obfuscator
+
+      - name: Obfuscate JavaScript before build
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const JavaScriptObfuscator = require('javascript-obfuscator');
+
+          let html = fs.readFileSync('index.html', 'utf8');
+
+          html = html.replace(/<script(?![^>]*src=)[^>]*>([\s\S]*?)<\/script>/g, (match, code) => {
+            if (!code.trim()) return match;
+            const result = JavaScriptObfuscator.obfuscate(code, {
+              compact: true,
+              controlFlowFlattening: false,
+              deadCodeInjection: false,
+              stringArray: true,
+              stringArrayEncoding: ['base64'],
+              stringArrayThreshold: 0.75,
+              identifierNamesGenerator: 'hexadecimal',
+              renameGlobals: false,
+              selfDefending: true,
+              disableConsoleOutput: true
+            }).getObfuscatedCode();
+            return match.replace(code, result);
+          });
+
+          fs.writeFileSync('index.obfuscated.html', html);
+          NODE
+
       - name: Prepare web assets
-        run: mkdir -p www && cp index.html www/
+        run: mkdir -p www && cp index.obfuscated.html www/index.html
 
       - name: Add Android platform
         run: npx cap add android
