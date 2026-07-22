@@ -52,7 +52,7 @@ jobs:
               stringArrayThreshold: 0.75,
               identifierNamesGenerator: 'hexadecimal',
               renameGlobals: false,
-              selfDefending: true,
+              selfDefending: false,
               disableConsoleOutput: true
             }).getObfuscatedCode();
             return match.replace(code, result);
