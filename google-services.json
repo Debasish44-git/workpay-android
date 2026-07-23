@@ -7,6 +7,35 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:250495208862:android:3be8c0aa1c2ca7019b5a8f",
+        "android_client_info": {
+          "package_name": "com.dlabouractivity.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "250495208862-uf06nutm97ejhncpvlh624uvndodklfl.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCnAndGfddRiyf_YqztIxD9fCWe4uNjthM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "250495208862-uf06nutm97ejhncpvlh624uvndodklfl.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:250495208862:android:edbd4ea4cf5094b69b5a8f",
         "android_client_info": {
           "package_name": "com.dworkpay.app"
