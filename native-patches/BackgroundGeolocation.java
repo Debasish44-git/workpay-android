@@ -218,6 +218,7 @@ public class BackgroundGeolocation extends Plugin {
             call.getString("bizId"),
             call.getString("supabaseUrl"),
             call.getString("supabaseKey"),
+            call.getString("authToken"),
             call.getDouble("geofenceLat", 0d),
             call.getDouble("geofenceLon", 0d),
             call.getFloat("geofenceRadius", 0f)
@@ -243,6 +244,23 @@ public class BackgroundGeolocation extends Plugin {
             call.getDouble("geofenceLon", 0d),
             call.getFloat("geofenceRadius", 0f)
         );
+        call.resolve();
+    }
+    // ──────────────────────────────────────────────────────────────────
+
+    // ── WORKPAY NATIVE PUSH FIX (v90) ─────────────────────────────────────
+    // New plugin method: call this from index.html on a timer to refresh the
+    // JWT the native watcher pushes with, since it expires — see the comment
+    // on Watcher.authToken and updateAuthToken() in BackgroundGeolocationService.
+    @PluginMethod()
+    public void updateAuthToken(PluginCall call) {
+        String workerId = call.getString("workerId");
+        String authToken = call.getString("authToken");
+        if (workerId == null || authToken == null || service == null) {
+            call.reject("Missing workerId/authToken or service not running.");
+            return;
+        }
+        service.updateAuthToken(workerId, authToken);
         call.resolve();
     }
     // ──────────────────────────────────────────────────────────────────
@@ -414,4 +432,5 @@ public class BackgroundGeolocation extends Plugin {
         }
         super.handleOnDestroy();
     }
-}
+        }
+
