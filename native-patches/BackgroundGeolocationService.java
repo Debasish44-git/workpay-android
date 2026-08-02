@@ -62,7 +62,8 @@ public class BackgroundGeolocationService extends Service {
         public String workerId;
         public String bizId;
         public String supabaseUrl;
-        public String supabaseKey;
+        public String supabaseKey;   // always the anon/publishable key — required in the `apikey` header on every request regardless of auth state
+        public String authToken;     // v90 FIX: the OWNER's real logged-in JWT — RLS on workpay_data requires this in `Authorization: Bearer`, the plain anon key is rejected by every policy on that table. Refreshed periodically from JS (see updateAuthToken below) since it expires.
         public double geofenceLat;
         public double geofenceLon;
         public float geofenceRadius;
@@ -147,7 +148,7 @@ public class BackgroundGeolocationService extends Service {
                     conn = (HttpURLConnection) url.openConnection();
                     conn.setRequestMethod("POST");
                     conn.setRequestProperty("apikey", w.supabaseKey);
-                    conn.setRequestProperty("Authorization", "Bearer " + w.supabaseKey);
+                    conn.setRequestProperty("Authorization", "Bearer " + (w.authToken != null ? w.authToken : w.supabaseKey)); // v90: prefer real JWT once available
                     conn.setRequestProperty("Content-Type", "application/json");
                     conn.setRequestProperty("Prefer", "return=minimal");
                     conn.setConnectTimeout(15000);
@@ -178,6 +179,15 @@ public class BackgroundGeolocationService extends Service {
         if (w.supabaseUrl == null || w.supabaseKey == null || w.bizId == null || w.workerId == null) {
             return; // config not passed in yet — nothing we can do
         }
+        // v90 FIX: every RLS policy on workpay_data requires a real authenticated
+        // JWT (auth.jwt()) — the anon key alone matches none of them and the
+        // write is silently dropped with no error. Without a real token yet
+        // (e.g. session hasn't loaded on first launch), there's no point
+        // even trying — same silent-no-op result, so bail out early instead.
+        if (w.authToken == null) {
+            Logger.debug("[BackgroundGeolocation] no auth token yet, skipping push for " + w.workerId);
+            return;
+        }
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -193,7 +203,7 @@ public class BackgroundGeolocationService extends Service {
                     getConn = (HttpURLConnection) getUrl.openConnection();
                     getConn.setRequestMethod("GET");
                     getConn.setRequestProperty("apikey", w.supabaseKey);
-                    getConn.setRequestProperty("Authorization", "Bearer " + w.supabaseKey);
+                    getConn.setRequestProperty("Authorization", "Bearer " + w.authToken); // v90 FIX: real JWT, not the anon key — see comment above
                     getConn.setConnectTimeout(15000);
                     getConn.setReadTimeout(15000);
 
@@ -253,7 +263,7 @@ public class BackgroundGeolocationService extends Service {
                     postConn = (HttpURLConnection) postUrl.openConnection();
                     postConn.setRequestMethod("POST");
                     postConn.setRequestProperty("apikey", w.supabaseKey);
-                    postConn.setRequestProperty("Authorization", "Bearer " + w.supabaseKey);
+                    postConn.setRequestProperty("Authorization", "Bearer " + w.authToken); // v90 FIX: real JWT, not the anon key — see comment above
                     postConn.setRequestProperty("Content-Type", "application/json");
                     postConn.setRequestProperty("Prefer", "resolution=merge-duplicates,return=minimal");
                     postConn.setConnectTimeout(15000);
@@ -291,6 +301,7 @@ public class BackgroundGeolocationService extends Service {
             final String bizId,
             final String supabaseUrl,
             final String supabaseKey,
+            final String authToken,   // v90 FIX: the owner's real JWT, required by RLS — see Watcher.authToken comment
             final double geofenceLat,
             final double geofenceLon,
             final float geofenceRadius
@@ -311,6 +322,7 @@ public class BackgroundGeolocationService extends Service {
             watcher.bizId = bizId;
             watcher.supabaseUrl = supabaseUrl;
             watcher.supabaseKey = supabaseKey;
+            watcher.authToken = authToken;
             watcher.geofenceLat = geofenceLat;
             watcher.geofenceLon = geofenceLon;
             watcher.geofenceRadius = geofenceRadius;
@@ -383,49 +395,4 @@ public class BackgroundGeolocationService extends Service {
 
         // ── WORKPAY NATIVE PUSH FIX ──────────────────────────────────────
         // Call this from index.html (via a new plugin method) whenever
-        // Labour Activity changes a clocked-in worker's geofence radius or
-        // site location, so the native push keeps computing distance
-        // against the current geofence instead of a stale one captured at
-        // punch-in time.
-        void updateGeofence(String workerId, double lat, double lon, float radius) {
-            for (Watcher watcher : watchers) {
-                if (workerId.equals(watcher.workerId)) {
-                    watcher.geofenceLat = lat;
-                    watcher.geofenceLon = lon;
-                    watcher.geofenceRadius = radius;
-                }
-            }
-        }
-        // ──────────────────────────────────────────────────────────────
-
-        void removeWatcher(String id) {
-            for (Watcher watcher : watchers) {
-                if (watcher.id.equals(id)) {
-                    watcher.client.removeLocationUpdates(watcher.locationCallback);
-                    watchers.remove(watcher);
-                    if (getNotification() == null) {
-                        stopForeground(true);
-                    }
-                    return;
-                }
-            }
-        }
-
-        void onPermissionsGranted() {
-            // If permissions were granted while the app was in the background, for example in
-            // the Settings app, the watchers need restarting.
-            for (Watcher watcher : watchers) {
-                watcher.client.removeLocationUpdates(watcher.locationCallback);
-                watcher.client.requestLocationUpdates(
-                    watcher.locationRequest,
-                    watcher.locationCallback,
-                    null
-                );
-            }
-        }
-
-        void stopService() {
-            BackgroundGeolocationService.this.stopSelf();
-        }
-    }
-}
+        // Labour Activity
